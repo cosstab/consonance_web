@@ -7,7 +7,7 @@ from consonance_web.config.templates.useragent_samsung_s9p import SamsungS9PUser
 import consonance_web
 import uuid
 import dissononce
-import socket
+import websocket
 import logging
 import sys
 import base64
@@ -35,17 +35,20 @@ CONFIG = ClientConfig(
     pushname="consonance",
     short_connect=True
 )
-PROTOCOL_VERSION = (4, 0)
-ENDPOINT = ("e1.whatsapp.net", 443)
+PROTOCOL_VERSION = (5, 2)
+ENDPOINT = "wss://web.whatsapp.com/ws/chat"
+ORIGIN = "https://web.whatsapp.com"
 HEADER = b"WA" + bytes(PROTOCOL_VERSION)
 
 if __name__ == "__main__":
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(ENDPOINT)
+    ws = websocket.WebSocket()
+    ws.connect(ENDPOINT, header={"Origin: " + ORIGIN})
+
     # send WA header indicating protocol version
-    s.send(HEADER)
+    ws.send(HEADER)
+
     # use WASegmentedStream for sending/receiving in frames
-    stream = WASegmentedStream(SocketArbitraryStream(s))
+    stream = WASegmentedStream(SocketArbitraryStream(ws))
     # initialize WANoiseProtocol
     wa_noiseprotocol = WANoiseProtocol(*PROTOCOL_VERSION)
     # start the protocol, this should a XX handshake since
