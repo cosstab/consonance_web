@@ -1,11 +1,11 @@
-from consonance.structs.keypair import KeyPair
-from consonance.structs.publickey import PublicKey
-from consonance.protocol import WANoiseProtocol
-from consonance.config.client import ClientConfig
-from consonance.streams.segmented.wa import WASegmentedStream
-from consonance.streams.arbitrary.arbitrary_socket import SocketArbitraryStream
-from consonance.config.templates.useragent_samsung_s9p import SamsungS9PUserAgentConfig
-import consonance
+from consonance_web.structs.keypair import KeyPair
+from consonance_web.structs.publickey import PublicKey
+from consonance_web.protocol import WANoiseProtocol
+from consonance_web.config.client import ClientConfig
+from consonance_web.streams.segmented.wa import WASegmentedStream
+from consonance_web.streams.arbitrary.arbitrary_socket import SocketArbitraryStream
+from consonance_web.config.templates.useragent_samsung_s9p import SamsungS9PUserAgentConfig
+import consonance_web
 import uuid
 import dissononce
 import socket
@@ -13,7 +13,7 @@ import logging
 import sys
 import base64
 
-consonance.logger.setLevel(logging.DEBUG)
+consonance_web.logger.setLevel(logging.DEBUG)
 dissononce.logger.setLevel(logging.DEBUG)
 
 # username is phone number

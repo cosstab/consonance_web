@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import consonance
+import consonance_web
 from setuptools import find_packages, setup
 
 setup(
     name='consonance',
-    version=consonance.__version__,
+    version=consonance_web.__version__,
     packages=find_packages(exclude=['tests', 'examples']),
     install_requires=['dissononce>=0.34.3', 'python-axolotl-curve25519', 'transitions', 'protobuf>=3.6.0'],
     license='GPL-3+',

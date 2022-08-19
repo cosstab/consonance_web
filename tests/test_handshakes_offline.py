@@ -1,8 +1,8 @@
-from consonance.structs.keypair import KeyPair
-from consonance.handshake import WAHandshake
-from consonance.config.client import ClientConfig
-from consonance.streams.segmented.dummy import DummySegmentedStream
-from consonance.config.templates.useragent_vbox import VBoxUserAgentConfig
+from consonance_web.structs.keypair import KeyPair
+from consonance_web.handshake import WAHandshake
+from consonance_web.config.client import ClientConfig
+from consonance_web.streams.segmented.dummy import DummySegmentedStream
+from consonance_web.config.templates.useragent_vbox import VBoxUserAgentConfig
 
 import uuid
 import base64
