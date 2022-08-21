@@ -1,6 +1,4 @@
-from .config.client import ClientConfig
 from .handshake import WAHandshake
-from .streams.segmented.segmented import SegmentedStream
 from .transport import WANoiseTransport
 from .exceptions.handshake_failed_exception import HandshakeFailedException
 from transitions import Machine

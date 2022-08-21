@@ -11,8 +11,8 @@ class SocketArbitraryStream(ArbitraryStream):
         """
         self._socket = socket # type: WebSocket
 
-    def read(self, readsize):
-        return self._socket.recv(readsize)
+    def read(self):
+        return self._socket.recv()
 
     def write(self, data):
         self._socket.send_binary(data)

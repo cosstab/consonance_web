@@ -1,9 +1,6 @@
-import random
-
 from dissononce.processing.impl.handshakestate import HandshakeState
 from dissononce.extras.processing.handshakestate_guarded import GuardedHandshakeState
 from dissononce.extras.processing.handshakestate_switchable import SwitchableHandshakeState
-from dissononce.processing.handshakepatterns.handshakepattern import HandshakePattern
 from dissononce.processing.handshakepatterns.interactive.IK import IKHandshakePattern
 from dissononce.processing.handshakepatterns.interactive.XX import XXHandshakePattern
 from dissononce.processing.modifiers.fallback import FallbackPatternModifier
@@ -18,12 +15,11 @@ from dissononce.extras.dh.dangerous.dh_nogen import NoGenDH
 from dissononce.exceptions.decrypt import DecryptFailedException
 from google.protobuf.message import DecodeError
 
+from .config.client import ClientConfig
 from .dissononce_extras.processing.symmetricstate_wa import WASymmetricState
-from .proto import wa20_pb2
-from .streams.segmented.segmented import SegmentedStream
+from .proto import wa20_pb2, wa_pb2
 from .certman.certman import CertMan
 from .exceptions.new_rs_exception import NewRemoteStaticException
-from .config.client import ClientConfig
 from .structs.publickey import PublicKey
 from .util.byte import ByteUtil
 from.exceptions.handshake_failed_exception import HandshakeFailedException
@@ -118,21 +114,18 @@ class WAHandshake(object):
         )
         ephemeral_public = bytearray()
         self._handshakestate.write_message(b'', ephemeral_public)
-        handshakemessage = wa20_pb2.HandshakeMessage()
-        client_hello = wa20_pb2.HandshakeMessage.ClientHello()
+        handshakemessage = wa_pb2.HandshakeMessage()
+        handshakemessage.clientHello.ephemeral = bytes(ephemeral_public)
+        stream.write_segment(handshakemessage.SerializeToString(), self._prologue)
 
-        client_hello.ephemeral = bytes(ephemeral_public)
-        handshakemessage.client_hello.MergeFrom(client_hello)
-        stream.write_segment(handshakemessage.SerializeToString())
-
-        incoming_handshakemessage = wa20_pb2.HandshakeMessage()
+        incoming_handshakemessage = wa_pb2.HandshakeMessage()
         incoming_handshakemessage.ParseFromString(stream.read_segment())
 
-        if not incoming_handshakemessage.HasField("server_hello"):
+        if not incoming_handshakemessage.HasField("serverHello"):
             raise ValueError("Handshake message does not contain server hello!")
 
-        server_hello = incoming_handshakemessage.server_hello
-
+        server_hello = incoming_handshakemessage.serverHello
+        
         payload_buffer = bytearray()
         self._handshakestate.read_message(
             server_hello.ephemeral + server_hello.static + server_hello.payload, payload_buffer
@@ -249,44 +242,53 @@ class WAHandshake(object):
 
         return cipherpair
 
-    def _create_full_payload(self, client_config):
+    def _create_full_payload(self, client_config:ClientConfig):
         """
         :param client_config:
         :type client_config: ClientConfig
         :return:
-        :rtype: wa20_pb2.ClientPayload
+        :rtype: wa_pb2.ClientPayload
         """
-        client_payload = wa20_pb2.ClientPayload()
-        user_agent = wa20_pb2.ClientPayload.UserAgent()
-        user_agent_app_version = wa20_pb2.ClientPayload.UserAgent.AppVersion()
+        client_payload = wa_pb2.ClientPayload()
 
-        user_agent.platform = client_config.useragent.platform
-        user_agent.mcc = client_config.useragent.mcc
-        user_agent.mnc = client_config.useragent.mnc
-        user_agent.os_version = client_config.useragent.os_version
-        user_agent.manufacturer = client_config.useragent.manufacturer
-        user_agent.device = client_config.useragent.device
-        user_agent.os_build_number = client_config.useragent.os_build_number
-        user_agent.phone_id = client_config.useragent.phone_id
-        user_agent.locale_language_iso_639_1 = client_config.useragent.locale_lang
-        user_agent.locale_country_iso_3166_1_alpha_2 = client_config.useragent.locale_country
-
-        user_agent_app_version.primary = client_config.useragent.app_version.primary
-        user_agent_app_version.secondary = client_config.useragent.app_version.secondary
-        user_agent_app_version.tertiary = client_config.useragent.app_version.tertiary
-        user_agent_app_version.quaternary = client_config.useragent.app_version.quaternary
-
-        user_agent.app_version.MergeFrom(user_agent_app_version)
-
-        client_payload.username = client_config.username
         client_payload.passive = client_config.passive
-        client_payload.push_name = client_config.pushname
+        user_agent = client_payload.userAgent
+        user_agent.platform = client_config.userAgent.platform
+        user_agent.appVersion.primary = client_config.userAgent.appVersion['primary']
+        user_agent.appVersion.secondary = client_config.userAgent.appVersion['secondary']
+        user_agent.appVersion.tertiary = client_config.userAgent.appVersion['tertiary']
+        user_agent.mcc = client_config.userAgent.mcc
+        user_agent.mnc = client_config.userAgent.mnc
+        user_agent.osVersion = client_config.userAgent.osVersion
+        user_agent.manufacturer = client_config.userAgent.manufacturer
+        user_agent.device = client_config.userAgent.device
+        user_agent.osBuildNumber = client_config.userAgent.osBuildNumber
+        user_agent.releaseChannel = client_config.userAgent.releaseChannel
+        user_agent.localeLanguageIso6391 = client_config.userAgent.localeLanguageIso6391
+        user_agent.localeCountryIso31661Alpha2 = client_config.userAgent.localeCountryIso31661Alpha2
 
-        max_int = (2**32) / 2
+        client_payload.webInfo.webSubPlatform = client_config.webInfo['webSubPlatform']
+        client_payload.connectType = client_config.connectType
+        client_payload.connectReason = client_config.connectReason
 
-        client_payload.session_id = random.randint(-max_int, max_int-1)
-        client_payload.short_connect = client_config.short_connect
-        client_payload.connect_type = 1
-        client_payload.user_agent.MergeFrom(user_agent)
+        device_pairing_data = client_payload.devicePairingData
+        device_pairing_data.eRegid = client_config.devicePairingData.eRegid
+        device_pairing_data.eKeytype = client_config.devicePairingData.eKeytype
+        device_pairing_data.eIdent = client_config.devicePairingData.eIdent
+        device_pairing_data.eSkeyId = client_config.devicePairingData.eSkeyId
+        device_pairing_data.eSkeyVal = client_config.devicePairingData.eSkeyVal
+        device_pairing_data.eSkeySig = client_config.devicePairingData.eSkeySig
+        device_pairing_data.buildHash = client_config.devicePairingData.buildHash
+
+        device_props = wa_pb2.DeviceProps()
+        client_device_props = client_config.devicePairingData.deviceProps
+        device_props.os = client_device_props.os
+        device_props.version.primary = client_device_props.version['primary']
+        device_props.version.secondary = client_device_props.version['secondary']
+        device_props.version.tertiary = client_device_props.version['tertiary']
+        device_props.platformType = client_device_props.platformType
+        device_props.requireFullSync = client_device_props.requireFullSync
+
+        device_pairing_data.deviceProps = device_props.SerializeToString()
 
         return client_payload

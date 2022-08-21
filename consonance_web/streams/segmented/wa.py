@@ -13,12 +13,14 @@ class WASegmentedStream(SegmentedStream):
         self._datastream = dynamicstream # type: ArbitraryStream
 
     def read_segment(self):
-        size = struct.unpack('>I', b"\x00" + self._datastream.read(3))[0] # type: int
-        return self._datastream.read(size)
+        return self._datastream.read()[3:] #Remove 3 first bytes containings message size
 
-    def write_segment(self, data):
+    def write_segment(self, data, prologue=None):
         if len(data) >= 16777216:
             raise ValueError("data too large to write; length=%d" % len(data))
 
-        self._datastream.write(struct.pack('>I', len(data))[1:])
-        self._datastream.write(data)
+        if prologue is not None:
+            self._datastream.write(prologue + struct.pack('>I', len(data))[1:] + data)
+        else:
+            self._datastream.write(struct.pack('>I', len(data))[1:] + data)
+        
