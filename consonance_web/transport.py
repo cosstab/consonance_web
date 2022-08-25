@@ -16,7 +16,7 @@ class WANoiseTransport(object):
         self._send_cipherstate = send_cipherstate
         self._recv_cipherstate = recv_cipherstate
 
-    def send(self, plaintext):
+    async def send(self, plaintext):
         """
         :param plaintext:
         :type plaintext: bytes
@@ -24,13 +24,13 @@ class WANoiseTransport(object):
         :rtype:
         """
         ciphertext = self._send_cipherstate.encrypt_with_ad(b'', plaintext)
-        self._stream.write_segment(ciphertext)
+        await self._stream.write_segment(ciphertext)
 
-    def recv(self):
+    async def recv(self):
         """
         :return:
         :rtype: bytes
         """
-        ciphertext = self._stream.read_segment()
+        ciphertext = await self._stream.read_segment()
         plaintext = self._recv_cipherstate.decrypt_with_ad(b'', ciphertext)
         return bytearray(plaintext)

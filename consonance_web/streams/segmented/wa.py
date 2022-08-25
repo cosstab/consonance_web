@@ -12,15 +12,15 @@ class WASegmentedStream(SegmentedStream):
         """
         self._datastream = dynamicstream # type: ArbitraryStream
 
-    def read_segment(self):
-        return self._datastream.read()[3:] #Remove 3 first bytes containings message size
+    async def read_segment(self):
+        return (await self._datastream.read())[3:] #Remove 3 first bytes containings message size
 
-    def write_segment(self, data, prologue=None):
+    async def write_segment(self, data, prologue=None):
         if len(data) >= 16777216:
             raise ValueError("data too large to write; length=%d" % len(data))
 
         if prologue is not None:
-            self._datastream.write(prologue + struct.pack('>I', len(data))[1:] + data)
+            await self._datastream.write(prologue + struct.pack('>I', len(data))[1:] + data)
         else:
-            self._datastream.write(struct.pack('>I', len(data))[1:] + data)
+            await self._datastream.write(struct.pack('>I', len(data))[1:] + data)
         

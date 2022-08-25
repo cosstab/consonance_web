@@ -1,6 +1,6 @@
 class SegmentedStream(object):
-    def read_segment(self):
+    async def read_segment(self):
         pass
 
-    def write_segment(self, data):
+    async def write_segment(self, data):
         pass

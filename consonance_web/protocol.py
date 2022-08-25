@@ -63,7 +63,7 @@ class WANoiseProtocol(object):
     def rs(self):
         return self._rs
 
-    def start(self, stream, client_config, s, rs=None):
+    async def start(self, stream, client_config, s, rs=None):
         """
         :param stream
         :type stream: SegmentedStream
@@ -79,7 +79,7 @@ class WANoiseProtocol(object):
         self._machine.start()
         handshake = WAHandshake(self._version_major, self._version_minor)
         try:
-            result = handshake.perform(client_config, stream, s, rs)
+            result = await handshake.perform(client_config, stream, s, rs)
             if result is not None:
                 self._rs = handshake.rs
                 self._transport = WANoiseTransport(stream, result[0], result[1])
@@ -94,7 +94,7 @@ class WANoiseProtocol(object):
         self._machine.reset()
         self._transport = None
 
-    def send(self, data):
+    async def send(self, data):
         """
         :param data:
         :type data: bytes
@@ -104,9 +104,9 @@ class WANoiseProtocol(object):
         :rtype:
         """
         self._machine.send()
-        self._transport.send(data)
+        await self._transport.send(data)
 
-    def receive(self):
+    async def receive(self):
         """
         :param datastream
         :type SegmentedDataStream
@@ -114,5 +114,5 @@ class WANoiseProtocol(object):
         :rtype: bytes
         """
         self._machine.receive()
-        return self._transport.recv()
+        return await self._transport.recv()
 

@@ -34,7 +34,7 @@ class WAHandshake(object):
         self._prologue = b"WA" + bytearray([version_major, version_minor])
         self._handshakestate = None  # type: HandshakeState | None
 
-    def perform(self, client_config, stream, s, rs=None, e=None):
+    async def perform(self, client_config, stream, s, rs=None, e=None):
         """
         :param client_config:
         :type client_config:
@@ -77,11 +77,11 @@ class WAHandshake(object):
         try:
             if rs is not None:
                 try:
-                    cipherstatepair = self._start_handshake_ik(stream, client_payload, dissononce_s, dissononce_rs)
+                    cipherstatepair = await self._start_handshake_ik(stream, client_payload, dissononce_s, dissononce_rs)
                 except NewRemoteStaticException as ex:
-                   cipherstatepair = self._switch_handshake_xxfallback(stream, dissononce_s, client_payload, ex.server_hello)
+                   cipherstatepair = await self._switch_handshake_xxfallback(stream, dissononce_s, client_payload, ex.server_hello)
             else:
-                cipherstatepair = self._start_handshake_xx(stream, client_payload, dissononce_s)
+                cipherstatepair = await self._start_handshake_xx(stream, client_payload, dissononce_s)
 
             return cipherstatepair
         except DecryptFailedException as e:
@@ -95,7 +95,7 @@ class WAHandshake(object):
     def rs(self):
         return PublicKey(self._handshakestate.rs.data) if self._handshakestate.rs else None
 
-    def _start_handshake_xx(self, stream, client_payload, s):
+    async def _start_handshake_xx(self, stream, client_payload, s):
         """
         :param stream:
         :type stream: SegmentedStream
@@ -116,10 +116,10 @@ class WAHandshake(object):
         self._handshakestate.write_message(b'', ephemeral_public)
         handshakemessage = wa_pb2.HandshakeMessage()
         handshakemessage.clientHello.ephemeral = bytes(ephemeral_public)
-        stream.write_segment(handshakemessage.SerializeToString(), self._prologue)
+        await stream.write_segment(handshakemessage.SerializeToString(), self._prologue)
 
         incoming_handshakemessage = wa_pb2.HandshakeMessage()
-        incoming_handshakemessage.ParseFromString(stream.read_segment())
+        incoming_handshakemessage.ParseFromString(await stream.read_segment())
 
         if not incoming_handshakemessage.HasField("serverHello"):
             raise ValueError("Handshake message does not contain server hello!")
@@ -146,11 +146,11 @@ class WAHandshake(object):
         client_finish.payload = payload
         outgoing_handshakemessage = wa20_pb2.HandshakeMessage()
         outgoing_handshakemessage.client_finish.MergeFrom(client_finish)
-        stream.write_segment(outgoing_handshakemessage.SerializeToString())
+        await stream.write_segment(outgoing_handshakemessage.SerializeToString())
 
         return cipherpair
 
-    def _start_handshake_ik(self, stream, client_payload, s, rs):
+    async def _start_handshake_ik(self, stream, client_payload, s, rs):
         """
         :param stream:
         :type stream: SegmentedStream
@@ -179,10 +179,10 @@ class WAHandshake(object):
         client_hello.payload = payload
         handshakemessage.client_hello.MergeFrom(client_hello)
 
-        stream.write_segment(handshakemessage.SerializeToString())
+        await stream.write_segment(handshakemessage.SerializeToString())
 
         incoming_handshakemessage = wa20_pb2.HandshakeMessage()
-        incoming_handshakemessage.ParseFromString(stream.read_segment())
+        incoming_handshakemessage.ParseFromString(await stream.read_segment())
 
         if not incoming_handshakemessage.HasField("server_hello"):
             raise HandshakeFailedException("Handshake message does not contain server hello!")
@@ -197,7 +197,7 @@ class WAHandshake(object):
             server_hello.ephemeral + server_hello.static + server_hello.payload, payload_buffer
         )
 
-    def _switch_handshake_xxfallback(self, stream, s, client_payload, server_hello):
+    async def _switch_handshake_xxfallback(self, stream, s, client_payload, server_hello):
         """
         :param handshake_pattern:
         :type handshake_pattern: HandshakePattern
@@ -238,7 +238,7 @@ class WAHandshake(object):
         client_finish.payload = payload
         outgoing_handshakemessage = wa20_pb2.HandshakeMessage()
         outgoing_handshakemessage.client_finish.MergeFrom(client_finish)
-        stream.write_segment(outgoing_handshakemessage.SerializeToString())
+        await stream.write_segment(outgoing_handshakemessage.SerializeToString())
 
         return cipherpair
 

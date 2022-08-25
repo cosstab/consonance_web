@@ -4,7 +4,7 @@ logger = logging.getLogger(__file__)
 
 
 class ArbitraryStream(object):
-    def read(self, readsize):
+    async def read(self, readsize):
         """
         :param readsize:
         :type readsize: int
@@ -12,7 +12,7 @@ class ArbitraryStream(object):
         :rtype: bytes
         """
 
-    def write(self, data):
+    async def write(self, data):
         """
         :param data:
         :type data: bytes

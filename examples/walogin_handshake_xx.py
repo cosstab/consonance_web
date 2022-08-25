@@ -1,15 +1,14 @@
+import asyncio
 from consonance_web.structs.keypair import KeyPair
 from consonance_web.protocol import WANoiseProtocol
 from consonance_web.config import client
 from consonance_web.streams.segmented.wa import WASegmentedStream
 from consonance_web.streams.arbitrary.arbitrary_socket import SocketArbitraryStream
-from consonance_web.config.templates.useragent_samsung_s9p import SamsungS9PUserAgentConfig
 import consonance_web
-import uuid
 import dissononce
-import websocket
 import logging
 import sys
+import websockets
 
 consonance_web.logger.setLevel(logging.DEBUG)
 dissononce.logger.setLevel(logging.DEBUG)
@@ -23,9 +22,8 @@ ENDPOINT = "wss://web.whatsapp.com/ws/chat"
 ORIGIN = "https://web.whatsapp.com"
 CLIENT_CONFIG = client.get_new_client(WA_VERSION)
 
-if __name__ == "__main__":
-    ws = websocket.WebSocket()
-    ws.connect(ENDPOINT, header={"Origin: " + ORIGIN})
+async def main():
+    ws = await websockets.connect(ENDPOINT, origin=ORIGIN)
 
     # use WASegmentedStream for sending/receiving in frames
     stream = WASegmentedStream(SocketArbitraryStream(ws))
@@ -34,11 +32,11 @@ if __name__ == "__main__":
     # start the protocol, this should a XX handshake since
     # we are not passing the remote static public key
     try:
-        wa_noiseprotocol.start(stream, CLIENT_CONFIG, KEYPAIR)
+        await wa_noiseprotocol.start(stream, CLIENT_CONFIG, KEYPAIR)
         print("Handshake completed, checking authentication...")
         # we are now in transport phase, first incoming data
         # will indicate whether we are authenticated
-        first_transport_data = wa_noiseprotocol.receive()
+        first_transport_data = await wa_noiseprotocol.receive()
         print(str(first_transport_data)) #This message contains QR Code info
         '''# fourth + fifth byte are status, [237, 38] is failure
         if first_transport_data[3] == 51:
@@ -52,3 +50,6 @@ if __name__ == "__main__":
     except Exception as e:
         print("Handshake failed: " + str(e))
         sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(main())
